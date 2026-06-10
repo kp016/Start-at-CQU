@@ -1,33 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Wallet, Download, Settings2 } from 'lucide-react';
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
+import { Download, Settings2, TrendingUp } from 'lucide-react';
 import type { AppEvent, PaySettings } from '@/types';
 import { getWeekSummary, getMonthSummary, getShiftHours, getShiftEarnings } from '@/lib/pay-calculator';
-import { getPaySettings, savePaySettings } from '@/lib/storage';
-import { formatCurrency, formatHours } from '@/lib/utils';
+import { formatCurrency, formatHours, cn } from '@/lib/utils';
 
-export default function PaySummary({ events }: { events: AppEvent[] }) {
-  const [settings, setSettings] = useState<PaySettings | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
+interface Props {
+  events: AppEvent[];
+  settings: PaySettings;
+  onUpdateSettings: (patch: Partial<PaySettings>) => void;
+}
 
-  useEffect(() => {
-    setSettings(getPaySettings());
-  }, []);
-
-  if (!settings) return null;
+export default function PaySummary({ events, settings, onUpdateSettings }: Props) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const week = getWeekSummary(events);
   const month = getMonthSummary(events);
   const weekNet = week.gross * (1 - settings.taxRate);
   const monthNet = month.gross * (1 - settings.taxRate);
-
-  const updateSettings = (patch: Partial<PaySettings>) => {
-    const next = { ...settings, ...patch };
-    setSettings(next);
-    savePaySettings(next);
-  };
 
   const exportCsv = () => {
     const shifts = events
@@ -38,96 +30,142 @@ export default function PaySummary({ events }: { events: AppEvent[] }) {
       ...shifts.map((s) => [
         format(parseISO(s.start), 'yyyy-MM-dd'),
         s.title,
-        format(parseISO(s.start), 'HH:mm'),
-        format(parseISO(s.end), 'HH:mm'),
+        s.allDay ? '' : format(parseISO(s.start), 'HH:mm'),
+        s.allDay ? '' : format(parseISO(s.end), 'HH:mm'),
         getShiftHours(s).toFixed(2),
         String(s.hourlyRate ?? ''),
         getShiftEarnings(s).toFixed(2),
       ]),
     ];
     const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `shifts-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-          <Wallet className="h-4 w-4 text-emerald-600" /> Pay
-        </h2>
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 overflow-hidden">
+      {/* Title row */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold dark:text-white">
+          <TrendingUp className="h-4 w-4 text-emerald-500" />
+          Pay summary
+        </h3>
         <div className="flex gap-1">
           <button
             onClick={exportCsv}
-            title="Export shifts to CSV"
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            title="Export CSV"
+            className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
             <Download className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setShowSettings((v) => !v)}
-            title="Pay settings"
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            onClick={() => setSettingsOpen((v) => !v)}
+            className={cn(
+              'rounded-xl p-1.5 transition-colors',
+              settingsOpen
+                ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300'
+            )}
           >
             <Settings2 className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-emerald-50 p-3">
-          <p className="text-xs text-emerald-700">This week</p>
-          <p className="text-xl font-bold text-emerald-800">{formatCurrency(week.gross)}</p>
-          <p className="text-xs text-emerald-600">
-            {formatHours(week.hours)} · {week.shiftCount} shift{week.shiftCount === 1 ? '' : 's'}
-          </p>
-          {settings.taxRate > 0 && (
-            <p className="text-xs text-emerald-600">≈ {formatCurrency(weekNet)} after tax</p>
-          )}
-        </div>
-        <div className="rounded-lg bg-blue-50 p-3">
-          <p className="text-xs text-blue-700">This month</p>
-          <p className="text-xl font-bold text-blue-800">{formatCurrency(month.gross)}</p>
-          <p className="text-xs text-blue-600">
-            {formatHours(month.hours)} · {month.shiftCount} shift{month.shiftCount === 1 ? '' : 's'}
-          </p>
-          {settings.taxRate > 0 && (
-            <p className="text-xs text-blue-600">≈ {formatCurrency(monthNet)} after tax</p>
-          )}
-        </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+        <StatCard
+          label="This week"
+          amount={week.gross}
+          net={settings.taxRate > 0 ? weekNet : undefined}
+          hours={week.hours}
+          count={week.shiftCount}
+          color="emerald"
+        />
+        <StatCard
+          label="This month"
+          amount={month.gross}
+          net={settings.taxRate > 0 ? monthNet : undefined}
+          hours={month.hours}
+          count={month.shiftCount}
+          color="indigo"
+        />
       </div>
 
-      {showSettings && (
-        <div className="mt-3 space-y-2 rounded-lg bg-slate-50 p-3 text-sm">
-          <label className="flex items-center justify-between gap-2">
-            <span className="text-slate-600">Default rate $/hr</span>
+      {/* Settings accordion */}
+      {settingsOpen && (
+        <div className="border-t border-slate-100 dark:border-slate-700/60 px-4 py-3 space-y-3 animate-fadeIn">
+          <SettingRow label="Default rate ($/hr)">
             <input
               type="number"
               min={0}
               step={0.5}
               value={settings.defaultHourlyRate}
-              onChange={(e) => updateSettings({ defaultHourlyRate: Number(e.target.value) })}
-              className="w-20 rounded border border-slate-200 px-2 py-1"
+              onChange={(e) => onUpdateSettings({ defaultHourlyRate: Number(e.target.value) })}
+              className="w-20 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-sm text-center dark:text-white focus:outline-none focus:border-indigo-500"
             />
-          </label>
-          <label className="flex items-center justify-between gap-2">
-            <span className="text-slate-600">Tax estimate %</span>
+          </SettingRow>
+          <SettingRow label="Tax estimate (%)">
             <input
               type="number"
               min={0}
               max={50}
               value={Math.round(settings.taxRate * 100)}
-              onChange={(e) => updateSettings({ taxRate: Number(e.target.value) / 100 })}
-              className="w-20 rounded border border-slate-200 px-2 py-1"
+              onChange={(e) => onUpdateSettings({ taxRate: Number(e.target.value) / 100 })}
+              className="w-20 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-sm text-center dark:text-white focus:outline-none focus:border-indigo-500"
             />
-          </label>
-          <p className="text-xs text-slate-400">Tax figure is a rough estimate only.</p>
+          </SettingRow>
+          <p className="text-xs text-slate-400">Estimate only — always check with a tax professional.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function StatCard({
+  label, amount, net, hours, count, color,
+}: {
+  label: string;
+  amount: number;
+  net?: number;
+  hours: number;
+  count: number;
+  color: 'emerald' | 'indigo';
+}) {
+  const bg = color === 'emerald'
+    ? 'bg-emerald-50 dark:bg-emerald-950/30'
+    : 'bg-indigo-50 dark:bg-indigo-950/30';
+  const text = color === 'emerald'
+    ? 'text-emerald-800 dark:text-emerald-300'
+    : 'text-indigo-800 dark:text-indigo-300';
+  const sub = color === 'emerald'
+    ? 'text-emerald-600 dark:text-emerald-500'
+    : 'text-indigo-600 dark:text-indigo-500';
+
+  return (
+    <div className={`rounded-xl p-3 ${bg}`}>
+      <p className={`text-xs font-medium ${sub}`}>{label}</p>
+      <p className={`text-2xl font-bold tracking-tight mt-0.5 ${text}`}>
+        {formatCurrency(amount)}
+      </p>
+      <p className={`text-xs mt-0.5 ${sub}`}>
+        {formatHours(hours)} · {count} shift{count === 1 ? '' : 's'}
+      </p>
+      {net != null && (
+        <p className={`text-xs ${sub}`}>≈ {formatCurrency(net)} after tax</p>
+      )}
+    </div>
+  );
+}
+
+function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm text-slate-600 dark:text-slate-400">{label}</span>
+      {children}
     </div>
   );
 }
