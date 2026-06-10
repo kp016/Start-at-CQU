@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FullCalendar overrides to match Tailwind look */
+.fc {
+  --fc-border-color: #e2e8f0;
+  --fc-today-bg-color: #eff6ff;
+  --fc-page-bg-color: transparent;
+  font-size: 0.875rem;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.fc .fc-button {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  box-shadow: none;
+}
+
+.fc .fc-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.fc .fc-event {
+  border-radius: 6px;
+  border: none;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.fc .fc-timegrid-slot {
+  height: 2.25rem;
+}
