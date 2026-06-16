@@ -62,7 +62,7 @@ export default function TodoSidebar({ events, onAdd, onToggle }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 overflow-hidden">
+    <div className="rounded-2xl border border-sand-200 dark:border-[#34302a] bg-white dark:bg-white/5 shadow-warm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold dark:text-white">
@@ -83,7 +83,7 @@ export default function TodoSidebar({ events, onAdd, onToggle }: Props) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()}
           placeholder="Add for today..."
-          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber-400 dark:focus:border-amber-500 dark:text-white placeholder:text-slate-400 transition-all"
+          className="flex-1 rounded-xl border border-sand-200 dark:border-[#34302a] bg-cream-50 dark:bg-white/5 px-3 py-2 text-sm outline-none focus:border-amber-400 dark:focus:border-amber-500 dark:text-cream-100 placeholder:text-ink-700/40 transition-all"
         />
         <button
           onClick={add}

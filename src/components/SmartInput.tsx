@@ -96,23 +96,23 @@ export default function SmartInput({ defaultRate, onAdd }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-sand-200 dark:border-[#34302a] bg-white dark:bg-white/5 shadow-warm overflow-hidden">
       {/* Input bar */}
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Sparkles className="h-4 w-4 text-indigo-500 shrink-0" />
+          <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !parsing && parse()}
             placeholder={`e.g. "${EXAMPLES[exampleIdx]}"`}
-            className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600 dark:text-slate-100"
+            className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-ink-700/40 dark:placeholder:text-cream-100/30 dark:text-cream-100"
           />
         </div>
         <button
           onClick={parse}
           disabled={parsing || !text.trim()}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition-all"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:shadow-md disabled:opacity-40 transition-all"
         >
           {parsing ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -130,7 +130,7 @@ export default function SmartInput({ defaultRate, onAdd }: Props) {
 
       {/* Preview cards */}
       {pending && (
-        <div className="border-t border-slate-100 dark:border-slate-700/60 px-4 py-3 space-y-2 animate-fadeIn">
+        <div className="border-t border-sand-200 dark:border-[#34302a] px-4 py-3 space-y-2 animate-fadeIn">
           {pending.map((p, i) => {
             const rate = p.hourlyRate ?? (p.type === 'shift' ? defaultRate : null);
             let pay: string | null = null;
@@ -143,7 +143,7 @@ export default function SmartInput({ defaultRate, onAdd }: Props) {
             return (
               <div
                 key={i}
-                className="flex items-center gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-sm"
+                className="flex items-center gap-2.5 rounded-xl bg-cream-100 dark:bg-white/5 px-3 py-2.5 text-sm"
               >
                 <span
                   className="rounded-lg px-2 py-0.5 text-xs font-semibold text-white shrink-0"

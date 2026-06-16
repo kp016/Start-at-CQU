@@ -2,36 +2,40 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
-import { CalendarDays, Sun, Moon, LogOut, Briefcase } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { CalendarDays, Sun, Moon, LogOut, Wallet, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { View } from '@/components/Sidebar';
 
-const MOBILE_NAV = [
-  { href: '/', icon: CalendarDays, label: 'Calendar' },
-  { href: '/earnings', icon: CalendarDays, label: 'Earnings' },
-  { href: '/jobs', icon: Briefcase, label: 'Jobs' },
+const MOBILE_NAV: { view: View; icon: typeof CalendarDays; label: string }[] = [
+  { view: 'calendar', icon: CalendarDays, label: 'Calendar' },
+  { view: 'earnings', icon: Wallet, label: 'Earnings' },
+  { view: 'jobs', icon: Briefcase, label: 'Jobs' },
 ];
 
-export default function Navbar() {
+export default function Navbar({
+  activeView,
+  onNavigate,
+}: {
+  activeView: View;
+  onNavigate: (v: View) => void;
+}) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
-  const pathname = usePathname();
 
   return (
     <>
-      {/* Top bar — mobile only */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 py-2.5 shadow-sm">
+      {/* Top bar — mobile */}
+      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-sand-200 dark:border-[#34302a] bg-cream-50/90 dark:bg-[#211d18]/90 backdrop-blur px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-indigo-600 p-1">
-            <CalendarDays className="h-4.5 w-4.5 text-white" size={18} />
+          <div className="rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 p-1.5">
+            <CalendarDays className="h-4 w-4 text-white" />
           </div>
-          <span className="font-bold text-base tracking-tight">Shift Tracker</span>
+          <span className="font-bold text-base tracking-tight text-ink-900 dark:text-cream-100">Shift Tracker</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-xl p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="rounded-xl p-2 text-ink-700 dark:text-cream-100/70 hover:bg-sand-100 dark:hover:bg-white/5 transition-colors"
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
@@ -41,31 +45,29 @@ export default function Navbar() {
           )}
           <button
             onClick={() => signOut()}
-            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="rounded-xl p-2 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors"
           >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
       </header>
 
-      {/* Bottom tab bar — mobile only */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 flex border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
-        {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href;
+      {/* Bottom tab bar — mobile */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 flex border-t border-sand-200 dark:border-[#34302a] bg-cream-50/95 dark:bg-[#211d18]/95 backdrop-blur">
+        {MOBILE_NAV.map(({ view, icon: Icon, label }) => {
+          const active = activeView === view;
           return (
-            <Link
-              key={href}
-              href={href}
+            <button
+              key={view}
+              onClick={() => onNavigate(view)}
               className={cn(
-                'flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors',
-                active
-                  ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-slate-500 dark:text-slate-400'
+                'flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold transition-colors',
+                active ? 'text-violet-600 dark:text-violet-400' : 'text-ink-700/60 dark:text-cream-100/50'
               )}
             >
-              <Icon size={20} className={active ? 'text-indigo-600 dark:text-indigo-400' : ''} />
+              <Icon size={20} />
               {label}
-            </Link>
+            </button>
           );
         })}
       </nav>
