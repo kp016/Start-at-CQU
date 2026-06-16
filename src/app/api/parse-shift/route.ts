@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { format } from 'date-fns';
+import { parseShiftText } from '@/lib/regex-parser';
 
 const SYSTEM_PROMPT = `You parse natural-language text into calendar entries for a student's shift-tracking app.
 Today's date is {{TODAY}} ({{WEEKDAY}}). Timezone: Australia/Brisbane.
@@ -25,44 +26,46 @@ Rules:
 - Multiple entries in one message → multiple array elements.
 - If you truly cannot parse anything, return [].`;
 
-export async function POST(req: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured' },
-      { status: 500 }
-    );
-  }
+async function parseWithClaude(text: string, now: Date) {
+  const system = SYSTEM_PROMPT.replace('{{TODAY}}', format(now, 'yyyy-MM-dd')).replace(
+    '{{WEEKDAY}}',
+    format(now, 'EEEE')
+  );
+  const anthropic = new Anthropic();
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 1024,
+    system,
+    messages: [{ role: 'user', content: text }],
+  });
+  const raw = msg.content[0].type === 'text' ? msg.content[0].text : '[]';
+  const jsonStart = raw.indexOf('[');
+  const jsonEnd = raw.lastIndexOf(']');
+  return JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
+}
 
+export async function POST(req: NextRequest) {
   const { text } = await req.json();
   if (!text || typeof text !== 'string') {
     return NextResponse.json({ error: 'text is required' }, { status: 400 });
   }
 
   const now = new Date();
-  const system = SYSTEM_PROMPT.replace('{{TODAY}}', format(now, 'yyyy-MM-dd')).replace(
-    '{{WEEKDAY}}',
-    format(now, 'EEEE')
-  );
 
-  try {
-    const anthropic = new Anthropic();
-    const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1024,
-      system,
-      messages: [{ role: 'user', content: text }],
-    });
-
-    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '[]';
-    const jsonStart = raw.indexOf('[');
-    const jsonEnd = raw.lastIndexOf(']');
-    const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
-
-    return NextResponse.json({ entries: parsed });
-  } catch (e) {
-    return NextResponse.json(
-      { error: `Could not parse: ${(e as Error).message}` },
-      { status: 502 }
-    );
+  // Use Claude when a key is configured (smarter), otherwise the free
+  // built-in parser. Fall back to the built-in parser on any Claude error.
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const entries = await parseWithClaude(text, now);
+      return NextResponse.json({ entries, engine: 'ai' });
+    } catch {
+      // fall through to the offline parser
+    }
   }
+
+  const entries = parseShiftText(text, now);
+  if (!entries.length) {
+    return NextResponse.json({ entries: [], engine: 'builtin' });
+  }
+  return NextResponse.json({ entries, engine: 'builtin' });
 }
